@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sopa de Letras Bíblica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,700;1,500&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f1e5; --card:#fffdf8; --ink:#2e2217; --soft:#7a5a36; --accent:#8b1e1e;
+  --gold:#e9c46a; --line:#cdb48d; --sel:rgba(139,30,30,.28); --ok:#2f7d4a;
+  --verse:rgba(233,196,106,.75);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1612; --card:#27201a; --ink:#f3e9da; --soft:#cfae82; --accent:#f08a7a;
+    --gold:#d9a93f; --line:#5a4a37; --sel:rgba(240,138,122,.35); --ok:#6fcf8f;
+    --verse:rgba(217,169,63,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1612; --card:#27201a; --ink:#f3e9da; --soft:#cfae82; --accent:#f08a7a;
+  --gold:#d9a93f; --line:#5a4a37; --sel:rgba(240,138,122,.35); --ok:#6fcf8f;
+  --verse:rgba(217,169,63,.55);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,-apple-system,"Segoe UI",sans-serif}
+body{min-height:100vh;display:flex;justify-content:center}
+.wrap{width:100%;max-width:520px;padding:14px 12px 40px}
+h1{font-family:Lora,Georgia,serif;font-size:1.55rem;text-align:center;margin:4px 0 2px;letter-spacing:.5px}
+.sub{text-align:center;color:var(--soft);font-family:Lora,Georgia,serif;font-style:italic;margin:0 0 12px;font-size:.95rem}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.pill{background:var(--card);border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:800;font-size:1.05rem;display:flex;gap:6px;align-items:center}
+.pill small{font-weight:600;color:var(--soft);font-size:.75rem}
+button{font-family:inherit}
+.btn-sm{background:transparent;border:2px solid var(--line);color:var(--soft);border-radius:999px;padding:6px 12px;font-weight:800;font-size:.85rem}
+.board{position:relative;background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:8px;touch-action:none;user-select:none;-webkit-user-select:none}
+.grid{position:relative;display:grid;grid-template-columns:repeat(14,1fr);aspect-ratio:1/1}
+.cell{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(14px,4.6vw,24px);position:relative;z-index:2;pointer-events:none}
+.cell.hit{color:var(--accent)}
+svg.marks{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);z-index:1;pointer-events:none}
+.locked .grid{filter:blur(7px)}
+.start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:5;text-align:center;padding:20px}
+.start p{margin:0;font-weight:600;background:var(--card);padding:8px 12px;border-radius:12px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:14px;padding:14px 28px;font-size:1.2rem;font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.toast{height:26px;text-align:center;font-weight:800;margin:8px 0 4px;transition:opacity .3s}
+.section{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.section h2{font-family:Lora,Georgia,serif;font-size:1rem;color:var(--accent);margin:0 0 8px;letter-spacing:.5px}
+.verse{display:flex;flex-wrap:wrap;gap:10px 10px;font-family:Lora,Georgia,serif;font-size:1.15rem;line-height:1.3}
+.slot{min-width:calc(var(--n)*0.72em + 10px);border-bottom:2px solid var(--soft);text-align:center;padding:0 2px;height:1.5em;font-weight:700;color:transparent;transition:color .4s}
+.slot.on{color:var(--ink);background:var(--verse);border-radius:6px 6px 0 0}
+.ref{margin-top:8px;font-style:italic;color:var(--soft);font-family:Lora,Georgia,serif;font-size:.9rem;display:none}
+.verse-done .ref{display:block}
+.lines{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.ln{display:flex;gap:6px;align-items:flex-end;font-size:.95rem}
+.ln span:first-child{color:var(--soft);font-weight:600;width:1.6em;text-align:right}
+.ln span:last-child{flex:1;border-bottom:2px solid var(--line);height:1.6em;font-weight:800;color:var(--accent);padding-left:4px}
+.ln.new span:last-child{animation:pop .5s}
+@keyframes pop{0%{background:var(--verse)}100%{background:transparent}}
+.hint{font-size:.85rem;color:var(--soft);margin:8px 2px 0;line-height:1.4}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+.modal.show{display:flex}
+.box{background:var(--card);border-radius:18px;padding:22px 18px;max-width:420px;width:100%;text-align:center;border:3px solid var(--gold)}
+.box h3{font-family:Lora,Georgia,serif;margin:0 0 6px;font-size:1.4rem}
+.box .big{font-size:2.3rem;font-weight:800;color:var(--accent);margin:6px 0}
+.box blockquote{font-family:Lora,Georgia,serif;font-style:italic;margin:10px 0;font-size:1.1rem}
+.box input{width:100%;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font-size:1rem;font-family:inherit;margin:8px 0;text-align:center}
+.box .nm{font-weight:800;font-size:1.3rem;margin:4px 0}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.conf{position:fixed;top:-10px;width:9px;height:14px;z-index:60;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sopa de Letras Bíblica</h1>
+  <p class="sub">Encuentra las 20 palabras escondidas</p>
+
+  <div class="hud">
+    <div class="pill">⏱ <span id="time">00:00</span></div>
+    <div class="pill"><span id="count">0</span><small>/ 20</small></div>
+    <button class="btn-sm" id="reset">Reiniciar</button>
+  </div>
+
+  <div class="board locked" id="board">
+    <div class="grid" id="grid"></div>
+    <svg class="marks" id="marks" viewBox="0 0 14 14" preserveAspectRatio="none"></svg>
+    <div class="start" id="start">
+      <p>Desliza el dedo sobre las letras para marcar cada palabra.<br>El tiempo empieza al presionar el botón.</p>
+      <button class="btn" id="go">Comenzar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="section" id="verseBox">
+    <h2>EL VERSÍCULO</h2>
+    <div class="verse" id="verse"></div>
+    <div class="ref">Filipenses 4:13</div>
+  </div>
+
+  <div class="section">
+    <h2>OTRAS PALABRAS ENCONTRADAS</h2>
+    <div class="lines" id="lines"></div>
+  </div>
+
+  <p class="hint">Las palabras pueden estar en horizontal, vertical o diagonal, y también al revés.</p>
+</div>
+
+<div class="modal" id="mVerse">
+  <div class="box">
+    <h3>¡Versículo completo! 🙌</h3>
+    <blockquote>"Todo lo puedo en Cristo que me fortalece"</blockquote>
+    <div style="color:var(--soft)">Filipenses 4:13</div>
+    <div class="big" id="vTime">00:00</div>
+    <div style="font-size:.9rem;color:var(--soft)">Puedes seguir buscando las demás palabras.</div>
+    <div class="row"><button class="btn" data-close>Seguir jugando</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mEnd">
+  <div class="box">
+    <h3>¡Lo lograste! 🎉</h3>
+    <div>Encontraste las 20 palabras</div>
+    <div class="big" id="eTime">00:00</div>
+    <div style="font-size:.9rem;color:var(--soft)">Versículo completado en <b id="eVerse">00:00</b></div>
+    <input id="name" maxlength="30" placeholder="Escribe tu nombre">
+    <div class="nm" id="nameShow"></div>
+    <div style="font-size:.85rem;color:var(--soft)">Toma una captura de pantalla para mostrar tu tiempo.</div>
+    <div class="row"><button class="btn-sm" data-close>Cerrar</button></div>
+  </div>
+</div>
+
+<script>
+const N=14;
+const L="APTZLFUBCDETGUMROJESUSICJRFNOOTEEHLSEBAHHFRFSJDEMLOCLBEVAEINMAACICEIOJTTROETVAUOJLAZMACCRHPIZMZSOBNPSOMLASDOAOLPGOFAZNAREPSEMJRSEENCFORACIONDTDIDTVEPNFOOFQOEHPLSODEUPEMULNMOISESPODOTEZZCRGJAPVPAGJ";
+const VERSE=[["TODO","Todo"],["LO","lo"],["PUEDO","puedo"],["EN","en"],["CRISTO","Cristo"],["QUE","que"],["ME","me"],["FORTALECE","fortalece"]];
+const OTHERS={BIBLIA:"BIBLIA",JESUS:"JESÚS",AMOR:"AMOR",GRACIA:"GRACIA",ORACION:"ORACIÓN",PROFETA:"PROFETA",APOSTOL:"APÓSTOL",SALMOS:"SALMOS",MOISES:"MOISÉS",DAVID:"DAVID",EDEN:"EDÉN",ESPERANZA:"ESPERANZA"};
+const COLORS=["rgba(120,180,230,.55)","rgba(140,200,140,.55)","rgba(230,150,190,.55)","rgba(180,150,230,.55)","rgba(240,170,110,.55)","rgba(110,200,200,.55)"];
+
+const $=id=>document.getElementById(id);
+const grid=$("grid"), marks=$("marks"), board=$("board");
+let found=new Set(), otherOrder=[], started=false, t0=0, tick=null, verseTime=null, endTime=null, sel=null;
+
+// Build grid
+for(let i=0;i<N*N;i++){const d=document.createElement("div");d.className="cell";d.textContent=L[i];grid.appendChild(d);}
+const cells=[...grid.children];
+
+// Verse slots
+VERSE.forEach(([w])=>{const s=document.createElement("span");s.className="slot";s.id="v_"+w;s.style.setProperty("--n",w.length);s.textContent=VERSE.find(v=>v[0]===w)[1];$("verse").appendChild(s);});
+// Other lines
+for(let i=0;i<12;i++){const d=document.createElement("div");d.className="ln";d.innerHTML=`<span>${i+1}.</span><span></span>`;$("lines").appendChild(d);}
+
+const fmt=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");};
+
+function start(){
+  started=true;board.classList.remove("locked");$("start").style.display="none";
+  t0=Date.now();tick=setInterval(()=>{$("time").textContent=fmt(Date.now()-t0);},250);
+}
+$("go").onclick=start;
+
+function cellAt(x,y){
+  const r=grid.getBoundingClientRect();
+  let c=Math.floor((x-r.left)/r.width*N), rw=Math.floor((y-r.top)/r.height*N);
+  return [Math.max(0,Math.min(N-1,rw)),Math.max(0,Math.min(N-1,c))];
+}
+function path(a,b){
+  let dr=b[0]-a[0], dc=b[1]-a[1];
+  const len=Math.max(Math.abs(dr),Math.abs(dc));
+  if(len===0) return [a];
+  const ang=Math.round(Math.atan2(dr,dc)/(Math.PI/4));
+  const sr=Math.round(Math.sin(ang*Math.PI/4)), sc=Math.round(Math.cos(ang*Math.PI/4));
+  const out=[];
+  for(let i=0;i<=len;i++){const r=a[0]+sr*i,c=a[1]+sc*i;if(r<0||r>=N||c<0||c>=N)break;out.push([r,c]);}
+  return out;
+}
+function drawLine(p,color,id){
+  const [r1,c1]=p[0],[r2,c2]=p[p.length-1];
+  let el=id?document.getElementById(id):null;
+  if(!el){el=document.createElementNS("http://www.w3.org/2000/svg","line");if(id)el.id=id;marks.appendChild(el);}
+  el.setAttribute("x1",c1+.5);el.setAttribute("y1",r1+.5);el.setAttribute("x2",c2+.5);el.setAttribute("y2",r2+.5);
+  el.style.stroke=color;el.setAttribute("stroke-width",.78);el.setAttribute("stroke-linecap","round");
+  el.setAttribute("vector-effect","none");
+  return el;
+}
+board.addEventListener("pointerdown",e=>{
+  if(!started||endTime)return;
+  e.preventDefault();board.setPointerCapture(e.pointerId);
+  const a=cellAt(e.clientX,e.clientY);sel={a,p:[a]};drawLine(sel.p,"var(--sel)","selLine");
+});
+board.addEventListener("pointermove",e=>{
+  if(!sel)return;e.preventDefault();
+  sel.p=path(sel.a,cellAt(e.clientX,e.clientY));drawLine(sel.p,"var(--sel)","selLine");
+});
+function endSel(){
+  if(!sel)return;const p=sel.p;sel=null;
+  const s=$("selLine");if(s)s.remove();
+  if(p.length<2)return;
+  const word=p.map(([r,c])=>L[r*N+c]).join(""), rev=[...word].reverse().join("");
+  const all=[...VERSE.map(v=>v[0]),...Object.keys(OTHERS)];
+  const hit=all.find(w=>w===word||w===rev);
+  if(!hit){toast("Intenta de nuevo","var(--soft)");return;}
+  if(found.has(hit)){toast("Ya encontraste "+hit,"var(--soft)");return;}
+  found.add(hit);
+  const isVerse=VERSE.some(v=>v[0]===hit);
+  drawLine(p,isVerse?"var(--verse)":COLORS[found.size%COLORS.length]);
+  p.forEach(([r,c])=>cells[r*N+c].classList.add("hit"));
+  if(navigator.vibrate)navigator.vibrate(40);
+  if(isVerse){$("v_"+hit).classList.add("on");}
+  else{
+    otherOrder.push(hit);const ln=$("lines").children[otherOrder.length-1];
+    ln.lastElementChild.textContent=OTHERS[hit];ln.classList.add("new");
+  }
+  $("count").textContent=found.size;
+  toast("¡"+(isVerse?VERSE.find(v=>v[0]===hit)[1]:OTHERS[hit]).toUpperCase()+"!","var(--ok)");
+  if(verseTime===null&&VERSE.every(v=>found.has(v[0]))){
+    verseTime=Date.now()-t0;$("verseBox").classList.add("verse-done");
+    $("vTime").textContent=fmt(verseTime);confetti(40);
+    if(found.size<20)setTimeout(()=>$("mVerse").classList.add("show"),400);
+  }
+  if(found.size===20){
+    endTime=Date.now()-t0;clearInterval(tick);$("time").textContent=fmt(endTime);
+    $("eTime").textContent=fmt(endTime);$("eVerse").textContent=fmt(verseTime);
+    confetti(90);setTimeout(()=>$("mEnd").classList.add("show"),500);
+  }
+}
+board.addEventListener("pointerup",endSel);
+board.addEventListener("pointercancel",endSel);
+
+let tt;function toast(msg,color){const t=$("toast");t.textContent=msg;t.style.color=color;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,1300);}
+
+function confetti(n){
+  const cols=["#e9c46a","#8b1e1e","#2f7d4a","#4a90d9","#e07aa8"];
+  for(let i=0;i<n;i++){const c=document.createElement("div");c.className="conf";
+    c.style.left=Math.random()*100+"vw";c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.8+Math.random()*1.8)+"s";c.style.animationDelay=Math.random()*.5+"s";
+    document.body.appendChild(c);setTimeout(()=>c.remove(),4500);}
+}
+
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest(".modal").classList.remove("show"));
+$("name").addEventListener("input",e=>$("nameShow").textContent=e.target.value);
+
+$("reset").onclick=()=>{
+  if(started&&!confirm("¿Reiniciar el juego? Se perderá tu progreso y el tiempo."))return;
+  location.reload();
+};
+document.addEventListener("gesturestart",e=>e.preventDefault());
+</script>
+</body>
+</html>
